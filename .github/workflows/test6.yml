@@ -249,14 +249,14 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         name: "RouterOS 6.49"
-        body_path: "CHANGELOG"
+
         tag_name: 6.49
         make_latest:  false
         prerelease:  ${{ matrix.channel == 'testing' }}
         files: |
           mikrotik-6.49.iso
-          netinstall-6.49.*
-          chr-6.49*.zip
+
+
           install-image-6.49.zip
           routeros-x86-6.49.npk
           all_packages-x86-6.49.zip

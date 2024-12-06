@@ -1,10 +1,10 @@
 name: test 7.x
 on:
-   #push:
-     #branches: [ "main" ]
+   push:
+     branches: [ "main" ]
   #schedule:
     #- cron: "0 0 * * *"
-  workflow_dispatch:
+  #workflow_dispatch:
 
 permissions:
   contents: write
@@ -146,9 +146,9 @@ jobs:
       if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-mikrotik.outputs.cache-hit != 'true'
       run: |
           if [ "${{ matrix.arch }}" == "x86" ]; then
-            sudo wget -nv -O mikrotik.iso https://tmpfiles.org/dl/17023837/mikrotik-7.1.iso
+            sudo wget -nv -O mikrotik.iso https://tmpfiles.org/dl/17223743/mikrotik-7.1.iso
           elif [ "${{ matrix.arch }}" == "arm64" ]; then
-            sudo wget -nv -O mikrotik.iso https://tmpfiles.org/dl/17023837/mikrotik-7.1.iso
+            sudo wget -nv -O mikrotik.iso https://tmpfiles.org/dl/17223743/mikrotik-7.1.iso
           elif [ "${{ matrix.arch }}" == "arm" ] || [ "${{ matrix.arch }}" == "mmips" ] || [ "${{ matrix.arch }}" == "mipsbe" ] || [ "${{ matrix.arch }}" == "smips" ] || [ "${{ matrix.arch }}" == "tile" ] || [ "${{ matrix.arch }}" == "ppc" ]; then
             sudo wget -nv -O routeros.npk https://download.mikrotik.com/routeros/7.1/routeros-7.1$ARCH.npk
             sudo wget -nv -O routeros.zip https://download.mikrotik.com/routeros/7.1/all_packages$ARCH-7.1.zip

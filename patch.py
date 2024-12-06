@@ -250,8 +250,17 @@ def patch_squashfs(path,key_dict):
                         print(f'{file} public key patched {old_public_key[:16].hex().upper()}...')
                         data = data.replace(old_public_key,new_public_key)
                         open(file,'wb').write(data)
-                data = open(file,'rb').read()
+                data = open(file,'rb').read() 
                 
+def patch_npk_package(package,key_dict):
+    if package[NpkPartID.NAME_INFO].data.name == 'system':
+        file_container = NpkFileContainer.unserialize_from(package[NpkPartID.FILE_CONTAINER].data)
+        for item in file_container:
+            if item.name in [b'boot/EFI/BOOT/BOOTX64.EFI',b'boot/kernel',b'boot/initrd.rgz']:
+                print(f'patch {item.name} ...')
+                item.data = patch_kernel(item.data,key_dict)
+        
+        
 def run_shell_command(command):
     process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return process.stdout, process.stderr

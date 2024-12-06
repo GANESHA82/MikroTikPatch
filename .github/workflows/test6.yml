@@ -52,10 +52,10 @@ jobs:
       run: |
         echo $(uname -a)
         LATEST_VERSION=$(wget -nv -O - https://upgrade.mikrotik.com/routeros/NEWEST6.${{ matrix.channel }} | cut -d ' ' -f1)
-        echo Latest Version:6.49.11
+        echo Latest Version:6.49.12
         if [ "${{ github.event_name }}" == "schedule" ]; then
           _LATEST_VERSION=$(wget -nv -O - https://upgrade.mikrotik.com/routeros/NEWEST6.${{ matrix.channel }}  | cut -d ' ' -f1)
-          if [ "$_LATEST_VERSION" == "6.49.11" ]; then
+          if [ "$_LATEST_VERSION" == "6.49.12" ]; then
             echo "No new version found"
             echo "has_new_version=false" >> $GITHUB_OUTPUT
             exit 0
@@ -64,48 +64,48 @@ jobs:
         echo "has_new_version=true" >> $GITHUB_OUTPUT
         BUILD_TIME=${{ needs.Set_BuildTime.outputs.BUILD_TIME }}
         echo Build Time:$BUILD_TIME
-        wget -nv -O CHANGELOG https://upgrade.mikrotik.com/routeros/6.49.11/CHANGELOG
+        wget -nv -O CHANGELOG https://upgrade.mikrotik.com/routeros/6.49.12/CHANGELOG
         cat CHANGELOG
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
         echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
 
-    - name: Cache NetInstall 6.49.11
+    - name: Cache NetInstall 6.49.12
       if: steps.get_latest.outputs.has_new_version == 'true'
       id: cache-netinstall
       uses: actions/cache@v4
       with:
         path: |
           netinstall.zip
-        key: netinstall-6.49.11
+        key: netinstall-6.49.12
 
-    - name: Get netinstall 6.49.11
+    - name: Get netinstall 6.49.12
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
-        sudo wget -nv -O netinstall.zip https://download.mikrotik.com/routeros/6.49.11/netinstall-6.49.11.zip
+        sudo wget -nv -O netinstall.zip https://download.mikrotik.com/routeros/6.49.12/netinstall-6.49.12.zip
 
-    - name: Patch netinstall 6.49.11
+    - name: Patch netinstall 6.49.12
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo unzip netinstall.zip
         sudo -E python3 patch.py netinstall netinstall.exe
-        sudo zip netinstall-6.49.11.zip ./netinstall.exe
+        sudo zip netinstall-6.49.12.zip ./netinstall.exe
         
-    - name: Cache mikrotik-6.49.11.iso
+    - name: Cache mikrotik-6.49.12.iso
       if: steps.get_latest.outputs.has_new_version == 'true'
       id: cache-mikrotik
       uses: actions/cache@v4
       with:
         path: |
           mikrotik.iso
-        key: mikrotik-6.49.11
+        key: mikrotik-6.49.12
 
-    - name: Get mikrotik-6.49.11.iso
+    - name: Get mikrotik-6.49.12.iso
       if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-mikrotik.outputs.cache-hit != 'true'
       run: |
-          sudo wget -nv -O mikrotik.iso https://download.mikrotik.com/routeros/6.49.11/mikrotik-6.49.11.iso
+          sudo wget -nv -O mikrotik.iso https://download.mikrotik.com/routeros/6.49.12/mikrotik-6.49.12.iso
 
 
-    - name: Patch mikrotik-6.49.11.iso
+    - name: Patch mikrotik-6.49.12.iso
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo apt-get install -y mkisofs xorriso > /dev/null
@@ -116,16 +116,16 @@ jobs:
         sudo rsync -a ./iso/ ./new_iso/
         sudo umount ./iso
         sudo rm -rf ./iso
-        sudo mv ./new_iso/system-6.49.11.npk ./
-        sudo -E python3 patch.py npk system-6.49.11.npk
+        sudo mv ./new_iso/system-6.49.12.npk ./
+        sudo -E python3 patch.py npk system-6.49.12.npk
         sudo -E python3 patch.py kernel ./new_iso/isolinux/initrd.rgz
         NPK_FILES=$(find ./new_iso/*.npk)
         for file in $NPK_FILES; do
             sudo -E python3 npk.py sign $file $file
         done
-        sudo cp system-6.49.11.npk ./new_iso/
-        sudo mkisofs -o mikrotik-6.49.11.iso \
-                    -V "MikroTik 6.49.11" \
+        sudo cp system-6.49.12.npk ./new_iso/
+        sudo mkisofs -o mikrotik-6.49.12.iso \
+                    -V "MikroTik 6.49.12" \
                     -sysid "" -preparer "MiKroTiK" \
                     -publisher "" -A "MiKroTiK RouterOS" \
                     -input-charset utf-8 \
@@ -141,18 +141,18 @@ jobs:
         sudo cp ./new_iso/*.npk ./all_packages/
         sudo rm -rf ./new_iso
         cd ./all_packages
-        sudo zip ../all_packages-x86-6.49.11.zip *.npk
+        sudo zip ../all_packages-x86-6.49.12.zip *.npk
         cd ..
 
 
-    - name: Create install-image-6.49.11.img
+    - name: Create install-image-6.49.12.img
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo modprobe nbd
         sudo apt-get update
         sudo apt-get install -y qemu-utils extlinux > /dev/null
-        truncate --size 64M install-image-6.49.11.img
-        sudo qemu-nbd -c /dev/nbd0 -f raw install-image-6.49.11.img
+        truncate --size 64M install-image-6.49.12.img
+        sudo qemu-nbd -c /dev/nbd0 -f raw install-image-6.49.12.img
         sudo mkfs.vfat -n "Install" /dev/nbd0
         sudo mkdir ./install
         sudo mount /dev/nbd0 ./install
@@ -172,61 +172,61 @@ jobs:
         sudo umount /dev/nbd0
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./install
-        sudo zip install-image-6.49.11.zip ./install-image-6.49.11.img
-        sudo rm ./install-image-6.49.11.img
+        sudo zip install-image-6.49.12.zip ./install-image-6.49.12.img
+        sudo rm ./install-image-6.49.12.img
 
-    - name: Cache chr-6.49.11.img.zip
+    - name: Cache chr-6.49.12.img.zip
       if: steps.get_latest.outputs.has_new_version == 'true'
       id: cache-chr-img
       uses: actions/cache@v4
       with:
         path: |
           chr.img
-        key: chr-6.49.11.img
+        key: chr-6.49.12.img
 
-    - name: Get chr-6.49.11.img
+    - name: Get chr-6.49.12.img
       if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-chr-img.outputs.cache-hit != 'true'
       run: |
-          sudo wget -nv -O chr.img.zip https://download.mikrotik.com/routeros/6.49.11/chr-6.49.11.img.zip
+          sudo wget -nv -O chr.img.zip https://download.mikrotik.com/routeros/6.49.12/chr-6.49.12.img.zip
           sudo unzip chr.img.zip
           sudo rm chr.img.zip
-          sudo mv chr-6.49.11.img chr.img
+          sudo mv chr-6.49.12.img chr.img
 
-    - name: Create chr-6.49.11.img
+    - name: Create chr-6.49.12.img
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo mkdir ./chr
-        sudo cp chr.img chr-6.49.11.img
-        sudo qemu-nbd -c /dev/nbd0 -f raw chr-6.49.11.img
+        sudo cp chr.img chr-6.49.12.img
+        sudo qemu-nbd -c /dev/nbd0 -f raw chr-6.49.12.img
         sudo -E python3 patch.py block /dev/nbd0p1 boot/initrd.rgz
         sudo mount /dev/nbd0p1 ./chr
-        sudo cp ./all_packages/dude-6.49.11.npk ./chr/var/pdb/dude/image
+        sudo cp ./all_packages/dude-6.49.12.npk ./chr/var/pdb/dude/image
         sudo -E python3 patch.py npk ./chr/var/pdb/routeros-x86/image
-        sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-6.49.11.npk 
-        sudo cp ./all_packages/routeros-x86-6.49.11.npk routeros-x86-6.49.11.npk
+        sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-6.49.12.npk 
+        sudo cp ./all_packages/routeros-x86-6.49.12.npk routeros-x86-6.49.12.npk
         sudo umount ./chr
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./chr
 
-        sudo qemu-img convert -f raw -O qcow2 chr-6.49.11.img chr-6.49.11.qcow2
-        sudo qemu-img convert -f raw -O vmdk chr-6.49.11.img chr-6.49.11.vmdk
-        sudo qemu-img convert -f raw -O vpc chr-6.49.11.img chr-6.49.11.vhd
-        sudo qemu-img convert -f raw -O vhdx chr-6.49.11.img chr-6.49.11.vhdx
-        sudo qemu-img convert -f raw -O vdi chr-6.49.11.img chr-6.49.11.vdi
+        sudo qemu-img convert -f raw -O qcow2 chr-6.49.12.img chr-6.49.12.qcow2
+        sudo qemu-img convert -f raw -O vmdk chr-6.49.12.img chr-6.49.12.vmdk
+        sudo qemu-img convert -f raw -O vpc chr-6.49.12.img chr-6.49.12.vhd
+        sudo qemu-img convert -f raw -O vhdx chr-6.49.12.img chr-6.49.12.vhdx
+        sudo qemu-img convert -f raw -O vdi chr-6.49.12.img chr-6.49.12.vdi
 
-        sudo zip chr-6.49.11.qcow2.zip chr-6.49.11.qcow2
-        sudo zip chr-6.49.11.vmdk.zip chr-6.49.11.vmdk
-        sudo zip chr-6.49.11.vhd.zip chr-6.49.11.vhd
-        sudo zip chr-6.49.11.vhdx.zip chr-6.49.11.vhdx
-        sudo zip chr-6.49.11.vdi.zip chr-6.49.11.vdi
-        sudo zip chr-6.49.11.img.zip chr-6.49.11.img
+        sudo zip chr-6.49.12.qcow2.zip chr-6.49.12.qcow2
+        sudo zip chr-6.49.12.vmdk.zip chr-6.49.12.vmdk
+        sudo zip chr-6.49.12.vhd.zip chr-6.49.12.vhd
+        sudo zip chr-6.49.12.vhdx.zip chr-6.49.12.vhdx
+        sudo zip chr-6.49.12.vdi.zip chr-6.49.12.vdi
+        sudo zip chr-6.49.12.img.zip chr-6.49.12.img
 
-        sudo rm chr-6.49.11$ARCH.qcow2
-        sudo rm chr-6.49.11$ARCH.vmdk
-        sudo rm chr-6.49.11$ARCH.vhd
-        sudo rm chr-6.49.11$ARCH.vhdx
-        sudo rm chr-6.49.11$ARCH.vdi
-        sudo rm chr-6.49.11$ARCH.img
+        sudo rm chr-6.49.12$ARCH.qcow2
+        sudo rm chr-6.49.12$ARCH.vmdk
+        sudo rm chr-6.49.12$ARCH.vhd
+        sudo rm chr-6.49.12$ARCH.vhdx
+        sudo rm chr-6.49.12$ARCH.vdi
+        sudo rm chr-6.49.12$ARCH.img
 
     - name: Clear Cloudflare cache
       if: steps.get_latest.outputs.has_new_version == 'true'
@@ -236,35 +236,35 @@ jobs:
             --header "Content-Type:application/json" \
             --data '{"purge_everything": true}'
 
-    - name: Delete Release tag 6.49.11
+    - name: Delete Release tag 6.49.12
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
-        RELEASE_INFO=$(curl -s -H $HEADER https://api.github.com/repos/${{ github.repository }}/releases/tags/6.49.11$ARCH)
+        RELEASE_INFO=$(curl -s -H $HEADER https://api.github.com/repos/${{ github.repository }}/releases/tags/6.49.12$ARCH)
         RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
         echo "Release ID: $RELEASE_ID"
         if [ "$RELEASE_ID" != "null" ]; then
-            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/6.49.11$ARCH
-            echo "Tag 6.49.11$ARCH deleted successfully."
+            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/6.49.12$ARCH
+            echo "Tag 6.49.12$ARCH deleted successfully."
             curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID
-            echo "Release with tag 6.49.11$ARCH deleted successfully."
+            echo "Release with tag 6.49.12$ARCH deleted successfully."
         else
-            echo "Release not found for tag: 6.49.11)"
+            echo "Release not found for tag: 6.49.12)"
         fi
 
-    - name: Create Release tag 6.49.11
+    - name: Create Release tag 6.49.12
       if: steps.get_latest.outputs.has_new_version == 'true'
       uses: softprops/action-gh-release@v2
       with:
-        name: "RouterOS 6.49.11"
+        name: "RouterOS 6.49.12"
         body_path: "CHANGELOG"
-        tag_name: 6.49.11
+        tag_name: 6.49.12
         make_latest:  false
         prerelease:  ${{ matrix.channel == 'testing' }}
         files: |
-          mikrotik-6.49.11.iso
-          netinstall-6.49.11.*
-          chr-6.49.11*.zip
-          install-image-6.49.11.zip
-          routeros-x86-6.49.11.npk
-          all_packages-x86-6.49.11.zip
+          mikrotik-6.49.12.iso
+          netinstall-6.49.12.*
+          chr-6.49.12*.zip
+          install-image-6.49.12.zip
+          routeros-x86-6.49.12.npk
+          all_packages-x86-6.49.12.zip

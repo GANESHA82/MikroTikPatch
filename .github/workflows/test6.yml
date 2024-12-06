@@ -182,6 +182,42 @@ jobs:
           sudo unzip chr.img.zip
           sudo rm chr.img.zip
           sudo mv chr-6.49.img chr.img
+          
+    - name: Create chr-6.49.img
+      if: steps.get_latest.outputs.has_new_version == 'true'
+      run: |
+        sudo mkdir ./chr
+        sudo cp chr.img chr-6.49.img
+        sudo qemu-nbd -c /dev/nbd0 -f raw chr-6.49.img
+        sudo -E python3 patch.py block /dev/nbd0p1 boot/initrd.rgz
+        sudo mount /dev/nbd0p1 ./chr
+        sudo cp ./all_packages/dude-6.49.npk ./chr/var/pdb/dude/image
+        sudo -E python3 patch.py npk ./chr/var/pdb/routeros-x86/image
+        sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-6.49.npk 
+        sudo cp ./all_packages/routeros-x86-6.49.npk routeros-x86-6.49.npk
+        sudo umount ./chr
+        sudo qemu-nbd -d /dev/nbd0
+        sudo rm -rf ./chr
+
+        sudo qemu-img convert -f raw -O qcow2 chr-6.49.img chr-6.49.qcow2
+        sudo qemu-img convert -f raw -O vmdk chr-6.49.img chr-6.49.vmdk
+        sudo qemu-img convert -f raw -O vpc chr-6.49.img chr-6.49.vhd
+        sudo qemu-img convert -f raw -O vhdx chr-6.49.img chr-6.49.vhdx
+        sudo qemu-img convert -f raw -O vdi chr-6.49.img chr-6.49.vdi
+
+        sudo zip chr-6.49.qcow2.zip chr-6.49.qcow2
+        sudo zip chr-6.49.vmdk.zip chr-6.49.vmdk
+        sudo zip chr-6.49.vhd.zip chr-6.49.vhd
+        sudo zip chr-6.49.vhdx.zip chr-6.49.vhdx
+        sudo zip chr-6.49.vdi.zip chr-6.49.vdi
+        sudo zip chr-6.49.img.zip chr-6.49.img
+
+        sudo rm chr-6.49$ARCH.qcow2
+        sudo rm chr-6.49$ARCH.vmdk
+        sudo rm chr-6.49$ARCH.vhd
+        sudo rm chr-6.49$ARCH.vhdx
+        sudo rm chr-6.49$ARCH.vdi
+        sudo rm chr-6.49$ARCH.img
 
     
     - name: Clear Cloudflare cache

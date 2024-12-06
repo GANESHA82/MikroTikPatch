@@ -256,38 +256,42 @@ def run_shell_command(command):
     process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return process.stdout, process.stderr
 
-def patch_npk_package(package,key_dict):
-    if package[NpkPartID.NAME_INFO].data.name == 'system':
-        file_container = NpkFileContainer.unserialize_from(package[NpkPartID.FILE_CONTAINER].data)
-        for item in file_container:
-            if item.name in [b'boot/EFI/BOOT/BOOTX64.EFI',b'boot/kernel',b'boot/initrd.rgz']:
-                print(f'patch {item.name} ...')
-                item.data = patch_kernel(item.data,key_dict)
-        package[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
-        squashfs_file = 'squashfs-root.sfs'
-        extract_dir = 'squashfs-root'
-        open(squashfs_file,'wb').write(package[NpkPartID.SQUASHFS].data)
-        print(f"extract {squashfs_file} ...")
-        run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
-        patch_squashfs(extract_dir,key_dict)
-        logo = os.path.join(extract_dir,"nova/lib/console/logo.txt")
-        run_shell_command(f"sudo sed -i '1d' {logo}") 
-        #run_shell_command(f"sudo sed -i '8s#.*#  NiceRadius|Contact Person[081617849221]       https://niceradius.com#' {logo}")
-        print(f"pack {extract_dir} ...")
-        run_shell_command(f"rm -f {squashfs_file}")
-        run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
-        print(f"clean ...")
-        run_shell_command(f"rm -rf {extract_dir}")
-        package[NpkPartID.SQUASHFS].data = open(squashfs_file,'rb').read()
-        run_shell_command(f"rm -f {squashfs_file}")
+
 
 def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,output_file=None):
-    npk = NovaPackage.load(input_file)   
-    if len(npk._packages) > 0:
-        for package in npk._packages:
-            patch_npk_package(package,key_dict)
-    else:
-        patch_npk_package(npk,key_dict)
+    npk = NovaPackage.load(input_file)    
+    if npk[NpkPartID.NAME_INFO].data.name == 'system':
+        file_container = NpkFileContainer.unserialize_from(npk[NpkPartID.FILE_CONTAINER].data)
+        for item in file_container:
+            if item.name == b'boot/EFI/BOOT/BOOTX64.EFI':
+                print(f'patch {item.name} ...')
+                item.data = patch_bzimage(item.data,key_dict)
+                open('linux','wb').write(item.data)
+            elif item.name == b'boot/kernel':
+                from netinstall import patch_elf
+                print(f'patch {item.name} ...')
+                item.data = patch_elf(item.data,key_dict)
+                open('linux','wb').write(item.data)
+       
+        npk[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
+        try:
+            squashfs_file = 'squashfs.sfs'
+            extract_dir = 'squashfs-root'
+            open(squashfs_file,'wb').write(npk[NpkPartID.SQUASHFS].data)
+            print(f"extract {squashfs_file} ...")
+            _, stderr = run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
+            print(stderr.decode())
+            patch_squashfs(extract_dir,key_dict)
+            print(f"pack {extract_dir} ...")
+            run_shell_command(f"rm -f {squashfs_file}")
+            _, stderr = run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
+            print(stderr.decode())
+        except Exception as e:
+            print(e)
+        print(f"clean ...")
+        run_shell_command(f"rm -rf {extract_dir}")
+        npk[NpkPartID.SQUASHFS].data = open(squashfs_file,'rb').read()
+        run_shell_command(f"rm -f {squashfs_file}")
     npk.sign(kcdsa_private_key,eddsa_private_key)
     npk.save(output_file or input_file)
 

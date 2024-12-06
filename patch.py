@@ -77,7 +77,7 @@ def patch_block(dev:str,file:str,key_dict):
         f.flush()
         print(']')
 
-def patch_initrd_xz(initrd_xz:bytes,key_dict:dict,ljust=True):
+def patch_initrd_xz(initrd_xz:bytes,key_dict:dict,ljust=False):
     initrd = lzma.decompress(initrd_xz)
     new_initrd = initrd  
     for old_public_key,new_public_key in key_dict.items():
@@ -251,8 +251,7 @@ def patch_squashfs(path,key_dict):
                         data = data.replace(old_public_key,new_public_key)
                         open(file,'wb').write(data)
                 data = open(file,'rb').read()
-               
-                    
+                
 def run_shell_command(command):
     process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return process.stdout, process.stderr
